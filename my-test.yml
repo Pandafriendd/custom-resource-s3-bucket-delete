@@ -25,7 +25,7 @@ Resources:
   EmptyS3BucketLambdaFunction:
     Type: AWS::Lambda::Function
     DependsOn:
-      - FPCRoleLambdaEmptyS3Bucket
+      - RoleLambdaEmptyS3Bucket
     Properties:
       Description: Empty S3 Bucket when cloud formation stack is deleted.
       FunctionName:
@@ -46,12 +46,12 @@ Resources:
             }
           };
       MemorySize: 128
-      Role: !GetAtt FPCRoleLambdaEmptyS3Bucket.Arn
+      Role: !GetAtt RoleLambdaEmptyS3Bucket.Arn
       Runtime: nodejs12.x
 
 
   # The empty s3 buckets lambda role.
-  FPCRoleLambdaEmptyS3Bucket:
+  RoleLambdaEmptyS3Bucket:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -84,9 +84,3 @@ Resources:
                 Action:
                   - s3:*
                 Resource: '*'
-      RoleName:
-        Fn::Join:
-          - ""
-          - - "fpc-cf-role-"
-            - Ref: Identifier
-            - "-lambda-empty-s3-bucket"
