@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: Fall Protection Cloud
+Parameters:
+  Identifier:
+    Default: default
+    Description: A unique identifier to create the resources for different stacks. Pattern "[a-z][a-z0-9\\-]*"
+    Type: String
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: "[a-z][a-z0-9\\-]*"
+Resources:
+
+
+
+  # link s3 code build bucket to empty-lambda-function
+  EmptyS3CodeBuildBucket:
+    Type: Custom::EmptyS3CodeBuildBucket
+    DependsOn:
+      - EmptyS3BucketLambdaFunction
+    Properties:
+      ServiceToken: !GetAtt EmptyS3BucketLambdaFunction.Arn
+
+  # lambda function for emptying a given s3 bucket
+  EmptyS3BucketLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - FPCRoleLambdaEmptyS3Bucket
+    Properties:
+      Description: Empty S3 Bucket when cloud formation stack is deleted.
+      FunctionName:
+        Fn::Join:
+          - ""
+          - - "fpc-cf-lambda-empty-s3-bucket-"
+            - Ref: Identifier
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          var AWS = require('aws-sdk');
+          var response = require('cfn-response');
+          exports.handler = function(event, context) {
+            if (event.RequestType === "Delete") {
+              response.send(event, context, "FAILED");
+            } else {
+              response.send(event, context, "SUCCESS");
+            }
+          };
+      MemorySize: 128
+      Role: !GetAtt FPCRoleLambdaEmptyS3Bucket.Arn
+      Runtime: nodejs12.x
+
+
+  # The empty s3 buckets lambda role.
+  FPCRoleLambdaEmptyS3Bucket:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: The lambda empty-s3-bucket role
+      Path: /service-role/
+      Policies:
+        - PolicyName: LogRolePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:Create*
+                  - logs:PutLogEvents
+                Resource:
+                  - arn:aws:logs:*:*:*
+        - PolicyName: S3RolePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource: '*'
+      RoleName:
+        Fn::Join:
+          - ""
+          - - "fpc-cf-role-"
+            - Ref: Identifier
+            - "-lambda-empty-s3-bucket"
