@@ -1,19 +1,5 @@
-AWSTemplateFormatVersion: 2010-09-09
-Transform: AWS::Serverless-2016-10-31
-Description: Fall Protection Cloud
-Parameters:
-  Identifier:
-    Default: default
-    Description: A unique identifier to create the resources for different stacks. Pattern "[a-z][a-z0-9\\-]*"
-    Type: String
-    MinLength: 1
-    MaxLength: 16
-    AllowedPattern: "[a-z][a-z0-9\\-]*"
 Resources:
 
-
-
-  # link s3 code build bucket to empty-lambda-function
   EmptyS3CodeBuildBucket:
     Type: Custom::EmptyS3CodeBuildBucket
     DependsOn:
@@ -21,18 +7,12 @@ Resources:
     Properties:
       ServiceToken: !GetAtt EmptyS3BucketLambdaFunction.Arn
 
-  # lambda function for emptying a given s3 bucket
   EmptyS3BucketLambdaFunction:
     Type: AWS::Lambda::Function
     DependsOn:
       - RoleLambdaEmptyS3Bucket
     Properties:
       Description: Empty S3 Bucket when cloud formation stack is deleted.
-      FunctionName:
-        Fn::Join:
-          - ""
-          - - "fpc-cf-lambda-empty-s3-bucket-"
-            - Ref: Identifier
       Handler: index.handler
       Code:
         ZipFile: |
@@ -50,7 +30,7 @@ Resources:
       Runtime: nodejs12.x
 
 
-  # The empty s3 buckets lambda role.
+
   RoleLambdaEmptyS3Bucket:
     Type: AWS::IAM::Role
     Properties:
